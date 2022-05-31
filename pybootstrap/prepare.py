@@ -242,10 +242,11 @@ def add_id_to_block_devices(
     '''
     new_blk_devs = []
     for dev in blk_devs:
-        for disk in disks_by_id:
-            if dev.path == disk.path and dev.serial in disk.id:
-                new_blk_devs.append(dev._replace(id=disk.id))
-                continue
+#        for disk in disks_by_id:
+#            if dev.path == disk.path and dev.serial in disk.id:
+#            if dev.path == disk.path:
+                new_blk_devs.append(dev._replace(id=dev.path))
+#                continue
     return new_blk_devs
 
 
