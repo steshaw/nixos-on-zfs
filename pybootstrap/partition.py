@@ -118,7 +118,7 @@ def zfs_create(config: ZfsSystemConfig):
     )
 
     bpool_name = 'bpool_' + config.zfs.pool_uuid
-    bpool_parts = [f'{disk}-part2' for disk in config.zfs.disks]
+    bpool_parts = [f'{disk}2' for disk in config.zfs.disks]
     bpool_vdev_type = ''
     if len(config.zfs.disks) > 1:
         bpool_vdev_type = 'mirror'
@@ -154,7 +154,7 @@ def zfs_create(config: ZfsSystemConfig):
     )
 
     rpool_name = 'rpool_' + config.zfs.pool_uuid
-    rpool_parts = [f'{disk}-part3' for disk in config.zfs.disks]
+    rpool_parts = [f'{disk}3' for disk in config.zfs.disks]
     rpool_vdev_type = config.zfs.topology
 
     rpool = ZPool(zpoolprops=rpool_zpoolprops, zfsprops=rpool_zfsprops)
@@ -288,10 +288,10 @@ def zfs_create(config: ZfsSystemConfig):
 
     # Format and mount ESP
     for disk in config.zfs.disks:
-        subprocess.run(f'mkfs.vfat -n EFI {disk}-part1'.split(), check=True)
+        subprocess.run(f'mkfs.vfat -n EFI {disk}1'.split(), check=True)
         disk_id = Path(disk).stem
-        subprocess.run(f'mkdir -p /mnt/boot/efis/{disk_id}-part1'.split(), check=True)
-        subprocess.run(f'mount -t vfat {disk}-part1 /mnt/boot/efis/{disk_id}-part1'.split(), check=True)
+        subprocess.run(f'mkdir -p /mnt/boot/efis/{disk_id}1'.split(), check=True)
+        subprocess.run(f'mount -t vfat {disk}1 /mnt/boot/efis/{disk_id}1'.split(), check=True)
 
 
 if __name__ == '__main__':

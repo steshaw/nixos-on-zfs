@@ -9,6 +9,8 @@ import string
 import subprocess
 from time import sleep
 from typing import List, NamedTuple, Optional, Sequence
+from dataclasses import dataclass
+import dataclasses
 
 import questionary
 
@@ -46,7 +48,8 @@ class ZfsSystemConfig(NamedTuple):
     nixos: NixOSConfig
 
 
-class BlockDevice(NamedTuple):
+@dataclass
+class BlockDevice:
     '''Information about a block device.'''
     name: str
     kname: str
@@ -56,9 +59,11 @@ class BlockDevice(NamedTuple):
     size: str
     type: str
     id: str = ''
+    def __hash__(self):
+        return hash((self.name, self.kname, self.path, self.model, self.serial, self.size, self.type, self.id))
 
-
-class DiskById(NamedTuple):
+@dataclass
+class DiskById:
     '''Information about disks by ID.'''
     id: str
     path: str
@@ -124,8 +129,11 @@ def get_disks() -> List[str]:
         A list of disks by id.
     '''
     blk_devs = get_block_devices()
-    disks_by_id = get_disks_by_id()
+    print("blk_devs", blk_devs)
+    disks_by_id = get_disks_by_path(blk_devs)
+    print("disks_by_id", disks_by_id)
     blk_devs = add_id_to_block_devices(blk_devs, disks_by_id)
+    print("blk_devs (with ids)", blk_devs)
     selection = ask_for_disk_selection(blk_devs)
     return selection
 
@@ -136,7 +144,7 @@ def ask_for_disk_selection(blk_devs: List[BlockDevice]) -> List[str]:
     Returns:
         A list of disks by id.
     '''
-    keys = ('id', 'path', 'size')
+    keys = ('path', 'path', 'size') # XXX Using path for id here...
     formatted_blk_devs = tabulate_block_devices(blk_devs=blk_devs, keys=keys)
 
     while True:
@@ -193,12 +201,14 @@ def get_block_devices() -> List[BlockDevice]:
     Returns:
         A list of block devices.
     '''
+    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
     # pylint: disable=no-member
     # pylint: disable=protected-access
-    blk_fields = BlockDevice._fields
-    non_blk_fields = BlockDevice._field_defaults.keys()
-    lsblk_cols = ','.join((key for key in blk_fields
-                           if key not in non_blk_fields))
+    fs = [f.name for f in dataclasses.fields(BlockDevice) if f.default]
+    print("fs", fs)
+    #non_blk_fields = BlockDevice.__dataclass_field_defaults__.keys()
+    lsblk_cols = ','.join(fs)
+    print("lsblk_cols", lsblk_cols)
 
     process = subprocess.run(f'lsblk -d --json -o {lsblk_cols}'.split(),
                              capture_output=True,
@@ -210,19 +220,23 @@ def get_block_devices() -> List[BlockDevice]:
     return disks_only
 
 
-def get_disks_by_id() -> List[DiskById]:
+def get_disks_by_path(blk_devs) -> List[DiskById]:
     '''Creates a list of block devices containing their 'by-id' path and
     /dev/ absolute path.
 
     Returns:
         A list of disks.
     '''
-    disks_by_id = glob.glob('/dev/disk/by-id/*')
-    sym_links = [os.path.realpath(disk) for disk in disks_by_id]
+    if True:
+        # XXX: Just using paths
+        return [DiskById(id=d.path, path=d.path) for d in blk_devs]
+    else:
+        disks_by_path = glob.glob('/dev/disk/by-path/*')
+        sym_links = [os.path.realpath(disk) for disk in disks_by_path]
 
-    disks_with_symlink = [DiskById(id=id, path=path)
-                          for id, path in zip(disks_by_id, sym_links)]
-    return disks_with_symlink
+        disks_with_symlink = [DiskById(id=id, path=path)
+                              for id, path in zip(disks_by_path, sym_links)]
+        return disks_with_symlink
 
 
 def add_id_to_block_devices(
@@ -240,14 +254,23 @@ def add_id_to_block_devices(
     Returns:
         A new list of block devices.
     '''
-    new_blk_devs = []
-    for dev in blk_devs:
-#        for disk in disks_by_id:
-#            if dev.path == disk.path and dev.serial in disk.id:
-#            if dev.path == disk.path:
-                new_blk_devs.append(dev._replace(id=dev.path))
-#                continue
-    return new_blk_devs
+    if True:
+        def f(d, n):
+            d.id = str(n)
+            return d
+        return [f(d, n) for d, n in zip(blk_devs, range(1,len(blk_devs) + 1))]
+    else:
+        new_blk_devs = []
+        for dev in blk_devs:
+            for disk in disks_by_id:
+                print("dev.path", dev.path)
+                print("disk.id", disk.path)
+                if dev.path == disk.path: # XXX
+                    dev.id=disk.id
+                    new_blk_devs.append(dev) # Use _replace again? Not found with dataclass...
+                    continue
+        print("new_blk_devs", new_blk_devs)
+        return set(new_blk_devs)
 
 
 def get_topology() -> str:
