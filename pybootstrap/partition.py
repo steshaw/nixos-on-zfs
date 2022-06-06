@@ -8,6 +8,9 @@ import questionary
 from pybootstrap.prepare import ZfsSystemConfig
 from pybootstrap.zfs import ZDataset, ZPool, ZPoolProps, ZfsProps
 
+def r(args):
+    print("Running", args)
+    return subprocess.run(args, check=True)
 
 class SGDisk(NamedTuple):
     partnum: int
@@ -40,7 +43,7 @@ def wipe_disks(config: ZfsSystemConfig) -> None:
     )
     if response:
         for disk in config.zfs.disks:
-            subprocess.run(f'blkdiscard -f {disk}'.split(), check=True)
+            r(f'blkdiscard -f {disk}'.split())
 
 
 def sgdisk(config: ZfsSystemConfig) -> None:
@@ -90,10 +93,10 @@ def sgdisk(config: ZfsSystemConfig) -> None:
     for disk in config.zfs.disks:
         for cmd in commands:
             cmd_str = ' '.join((str(cmd), disk))
-            subprocess.run(cmd_str.split(), check=True)
+            r(cmd_str.split())
             # print(' '.join((str(cmd), disk)))
-    subprocess.run('sync', check=True)
-    subprocess.run('sleep 3'.split(), check=True)
+    r('sync')
+    r('sleep 3'.split())
 
 
 def zfs_create(config: ZfsSystemConfig):
@@ -127,7 +130,7 @@ def zfs_create(config: ZfsSystemConfig):
     bpool_create = bpool.create(name=bpool_name,
                                 disks=bpool_parts,
                                 vdev_type=bpool_vdev_type)
-    subprocess.run(bpool_create.split(), check=True)
+    r(bpool_create.split())
 
     # Create the root pool
     rpool_zpoolprops = ZPoolProps(
@@ -161,7 +164,7 @@ def zfs_create(config: ZfsSystemConfig):
     rpool_create = rpool.create(name=rpool_name,
                                 disks=rpool_parts,
                                 vdev_type=rpool_vdev_type)
-    subprocess.run(rpool_create.split(), check=True)
+    r(rpool_create.split())
 
     # Create OS dataset
     root_os_zfsprops = ZfsProps(
@@ -174,7 +177,7 @@ def zfs_create(config: ZfsSystemConfig):
     )
     root_os_path = Path(rpool_name) / config.zfs.os_id
     root_os_dataset = ZDataset(zfsprops=root_os_zfsprops)
-    subprocess.run(root_os_dataset.create(filesystem=root_os_path).split(), check=True)
+    r(root_os_dataset.create(filesystem=root_os_path).split())
 
     # Common
     container_props = ZfsProps(prefix='o', canmount='off', mountpoint='none')
@@ -183,7 +186,7 @@ def zfs_create(config: ZfsSystemConfig):
     root_zfsprops = container_props
     root_path = root_os_path / 'ROOT'
     root_dataset = ZDataset(zfsprops=root_zfsprops)
-    subprocess.run(root_dataset.create(filesystem=root_path).split(), check=True)
+    r(root_dataset.create(filesystem=root_path).split())
 
     rdefault_zfsprops = ZfsProps(
         prefix='o',
@@ -192,20 +195,20 @@ def zfs_create(config: ZfsSystemConfig):
     )
     rdefault_path = root_path / 'default'
     rdefault_dataset = ZDataset(zfsprops=rdefault_zfsprops)
-    subprocess.run(rdefault_dataset.create(filesystem=rdefault_path).split(), check=True)
+    r(rdefault_dataset.create(filesystem=rdefault_path).split())
 
-    subprocess.run(f'zfs mount {rdefault_path}'.split(), check=True)
+    r(f'zfs mount {rdefault_path}'.split())
 
     # Create BOOT datasets
     boot_os_zfsprops = container_props
     boot_os_path = Path(bpool_name) / config.zfs.os_id
     boot_os_dataset = ZDataset(zfsprops=boot_os_zfsprops)
-    subprocess.run(boot_os_dataset.create(filesystem=boot_os_path).split(), check=True)
+    r(boot_os_dataset.create(filesystem=boot_os_path).split())
 
     boot_zfsprops = container_props
     boot_path = boot_os_path / 'BOOT'
     boot_dataset = ZDataset(zfsprops=boot_zfsprops)
-    subprocess.run(boot_dataset.create(filesystem=boot_path).split(), check=True)
+    r(boot_dataset.create(filesystem=boot_path).split())
 
     bdefault_zfsprops = ZfsProps(
         prefix='o',
@@ -214,15 +217,15 @@ def zfs_create(config: ZfsSystemConfig):
     )
     bdefault_path = boot_path / 'default'
     bdefault_dataset = ZDataset(zfsprops=bdefault_zfsprops)
-    subprocess.run(bdefault_dataset.create(bdefault_path).split(), check=True)
+    r(bdefault_dataset.create(bdefault_path).split())
 
-    subprocess.run(f'zfs mount {bdefault_path}'.split(), check=True)
+    r(f'zfs mount {bdefault_path}'.split())
 
     # Create DATA datasets
     data_zfsprops = container_props
     data_path = root_os_path / 'DATA'
     data_dataset = ZDataset(zfsprops=data_zfsprops)
-    subprocess.run(data_dataset.create(filesystem=data_path).split(), check=True)
+    r(data_dataset.create(filesystem=data_path).split())
 
     # Create datasets for mounting nix specific paths
     dlocal_zfsprops = ZfsProps(
@@ -232,7 +235,7 @@ def zfs_create(config: ZfsSystemConfig):
     )
     dlocal_path = data_path / 'local'
     dlocal_dataset = ZDataset(zfsprops=dlocal_zfsprops)
-    subprocess.run(dlocal_dataset.create(filesystem=dlocal_path).split(), check=True)
+    r(dlocal_dataset.create(filesystem=dlocal_path).split())
 
     for nixdir in ('nix', ):
         nixdir_zfsprops = ZfsProps(prefix='o',
@@ -240,58 +243,58 @@ def zfs_create(config: ZfsSystemConfig):
                                    mountpoint=Path('/') / nixdir)
         nixdir_path = dlocal_path / nixdir
         nixdir_dataset = ZDataset(zfsprops=nixdir_zfsprops)
-        subprocess.run(nixdir_dataset.create(filesystem=nixdir_path).split(), check=True)
+        r(nixdir_dataset.create(filesystem=nixdir_path).split())
 
     # Create user/shared/persistent datasets
     data_default_props = ZfsProps( prefix='o', mountpoint=Path('/'), canmount='off')
     data_default_path = data_path / 'default'
     data_default_dataset = ZDataset(zfsprops=data_default_props)
-    subprocess.run(data_default_dataset.create(filesystem=data_default_path).split(), check=True)
+    r(data_default_dataset.create(filesystem=data_default_path).split())
 
     # containers
     for shared_con in ('usr', 'var', 'var/lib'):
         shared_con_props = ZfsProps(prefix='o', canmount='off')
         shared_con_path = data_default_path / shared_con
         shared_con_dataset = ZDataset(zfsprops=shared_con_props)
-        subprocess.run(shared_con_dataset.create(filesystem=shared_con_path).split(), check=True)
+        r(shared_con_dataset.create(filesystem=shared_con_path).split())
 
     # mounted directories
     for shared in ('home', 'root', 'srv', 'usr/local', 'var/log', 'var/spool'):
         shared_props = ZfsProps(prefix='o', canmount='on')
         shared_path = data_default_path / shared
         shared_dataset = ZDataset(zfsprops=shared_props)
-        subprocess.run(shared_dataset.create(filesystem=shared_path).split(), check=True)
+        r(shared_dataset.create(filesystem=shared_path).split())
 
     # chmod root
-    subprocess.run('chmod 750 /mnt/root'.split(), check=True)
+    r('chmod 750 /mnt/root'.split())
 
     # Create a state dataset for saving mutable data in case an
     # immutable file system is used
     state_props = ZfsProps(prefix='o', canmount='on')
     state_path = data_default_path / 'state'
     state_dataset = ZDataset(zfsprops=state_props)
-    subprocess.run(state_dataset.create(filesystem=state_path).split(), check=True)
+    r(state_dataset.create(filesystem=state_path).split())
 
     mnt_state = Path('/mnt/state')
     mnt = Path('/mnt')
     for state in ('etc/nixos', 'etc/cryptkey.d'):
-        subprocess.run(f'mkdir -p {mnt_state / state} {mnt / state}'.split(), check=True)
-        subprocess.run(f'mount -o bind {mnt_state / state} {mnt / state}'.split(), check=True)
+        r(f'mkdir -p {mnt_state / state} {mnt / state}'.split())
+        r(f'mount -o bind {mnt_state / state} {mnt / state}'.split())
 
     # Create an `empty` dataset to use as an original snapshot for an
     # immutable file system.
     empty_props = ZfsProps(prefix='o', canmount='noauto', mountpoint=Path('/'))
     empty_path = root_path / 'empty'
     empty_dataset = ZDataset(zfsprops=empty_props)
-    subprocess.run(empty_dataset.create(filesystem=empty_path).split(), check=True)
-    subprocess.run(f'zfs snapshot {empty_path}@start'.split(), check=True)
+    r(empty_dataset.create(filesystem=empty_path).split())
+    r(f'zfs snapshot {empty_path}@start'.split())
 
     # Format and mount ESP
     for disk in config.zfs.disks:
-        subprocess.run(f'mkfs.vfat -n EFI {disk}1'.split(), check=True)
+        r(f'mkfs.vfat -n EFI {disk}1'.split())
         disk_id = Path(disk).stem
-        subprocess.run(f'mkdir -p /mnt/boot/efis/{disk_id}1'.split(), check=True)
-        subprocess.run(f'mount -t vfat {disk}1 /mnt/boot/efis/{disk_id}1'.split(), check=True)
+        r(f'mkdir -p /mnt/boot/efis/{disk_id}1'.split())
+        r(f'mount -t vfat {disk}1 /mnt/boot/efis/{disk_id}1'.split())
 
 
 if __name__ == '__main__':
