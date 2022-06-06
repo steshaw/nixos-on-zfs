@@ -118,7 +118,7 @@ def update_zfs_nix_file(config: ZfsSystemConfig):
         newlines = [line for line in newlines if 'swapDevices' not in line]
     else:
         swap_list = [
-            f'{{ device = "{disk}-part4"; randomEncryption.enable = true; }}'
+            f'{{ device = "{disk}4"; randomEncryption.enable = true; }}'
             for disk in config.zfs.disks
         ]
         swaps = '\n    ' + '\n    '.join(swap_list) + '\n  '

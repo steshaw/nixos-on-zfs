@@ -8,7 +8,7 @@
   systemd.services.zfs-mount.enable = false;
   environment.etc."machine-id".source = "/state/etc/machine-id";
   environment.etc."zfs/zpool.cache".source = "/state/etc/zfs/zpool.cache";
-  boot.loader.efi.efiSysMountPoint = "/boot/efis/PRIMARY_DISK-part1";
+  boot.loader.efi.efiSysMountPoint = "/boot/efis/PRIMARY_DISK1";
   boot.loader.efi.canTouchEfiVariables = false;
   # if UEFI firmware can detect entries
   # boot.loader.efi.canTouchEfiVariables = true;
@@ -29,7 +29,7 @@
     '';
     grub.extraInstallCommands = ''
       export ESP_MIRROR=$(mktemp -d -p /tmp)
-      cp -r /boot/efis/PRIMARY_DISK-part1/EFI $ESP_MIRROR
+      cp -r /boot/efis/PRIMARY_DISK1/EFI $ESP_MIRROR
       for i in /boot/efis/*; do
         cp -r $ESP_MIRROR/EFI $i
       done
