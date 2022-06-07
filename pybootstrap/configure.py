@@ -13,7 +13,7 @@ def configure(config: ZfsSystemConfig):
     '''Setup the NixOS configuration files.'''
     generate_system_config()
     update_config_imports(config=config)
-    #remove_systemd_boot_refs(config=config)
+    remove_systemd_boot_refs(config=config)
     update_hardware_config(config=config)
     update_zfs_nix_file(config=config)
 
