@@ -96,6 +96,8 @@ def sgdisk(config: ZfsSystemConfig) -> None:
             r(cmd_str.split())
             # print(' '.join((str(cmd), disk)))
     r('sync')
+    for disk in config.zfs.disks:
+        r(f'sudo partprobe -s {disk}'.split())
     r('sleep 3'.split())
 
 
