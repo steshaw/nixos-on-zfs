@@ -9,7 +9,7 @@
   environment.etc."machine-id".source = "/state/etc/machine-id";
   environment.etc."zfs/zpool.cache".source = "/state/etc/zfs/zpool.cache";
   boot.loader.efi.efiSysMountPoint = "/boot/efis/PRIMARY_DISK1";
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.efi.canTouchEfiVariables = false;
 
   boot.loader = {
     generationsDir.copyKernels = true;
