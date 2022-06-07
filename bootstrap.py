@@ -1,7 +1,7 @@
 from pybootstrap import configure, install, partition, prepare
 
 def c(msg):
-    input("About to {msg} [press enter to continue]")
+    input(f"About to {msg} [press enter to continue]")
 
 def main():
     c("config")
