@@ -6,7 +6,7 @@ def c(msg):
 def main():
     c("config")
     config = prepare.prepare()
-    c("parition")
+    c("partition")
     partition.partition(config=config)
     c("configure")
     configure.configure(config=config)
